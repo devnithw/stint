@@ -7,7 +7,7 @@
 	<key>CFBundleDisplayName</key>
 	<string>Stint</string>
 	<key>CFBundleIdentifier</key>
-	<string>io.github.devnithw.stint</string>
+	<string>local.stint</string>
 	<key>CFBundleExecutable</key>
 	<string>Stint</string>
 	<key>CFBundleIconFile</key>

@@ -1,5 +1,11 @@
 // Focus trend: focused time per day, and the week view that charts it.
-// Included by stint.mm (it shares that file's state and drawing helpers); not compiled on its own.
+#import "trend.h"
+#import "format.h"
+#import "gfx.h"
+#import "widgets.h"
+
+using std::min;
+using std::max;
 
 // ---------------------------------------------------------------- data
 // Focused milliseconds per local calendar day, keyed yyyymmdd.
@@ -27,7 +33,7 @@ static void TrendLoad() {
             gDays[k.intValue] = max(0LL, [v longLongValue]);
     }
 }
-static void TrendSave() {
+void TrendSave() {
     if (!gDaysDirty) return;
     NSMutableDictionary* d = [NSMutableDictionary dictionary];
     for (auto& [k, v] : gDays) d[[NSString stringWithFormat:@"%d", k]] = @(v);
@@ -35,7 +41,7 @@ static void TrendSave() {
     gDaysDirty = false; gDaysSaved = Now();
 }
 // Called from Tick with the focus time that just passed.
-static void TrendAdd(long long ms) {
+void TrendAdd(long long ms) {
     if (ms <= 0) return;
     TrendLoad();
     gDays[DayKey(time(nullptr))] += ms;
@@ -61,6 +67,16 @@ static Week WeekOf(int back) {
     }
     return w;
 }
+
+#ifdef STINT_SNAPSHOT
+void TrendSample(const long long mins[2][7]) {
+    gDaysLoaded = true;  // sample data instead of the stored days
+    for (int w = 0; w < 2; w++) {
+        Week k = WeekOf(w);
+        for (int i = 0; i < 7; i++) gDays[k.key[i]] = w == 0 && i > TodayIndex() ? 0 : mins[w][i] * 60000;
+    }
+}
+#endif
 
 // ---------------------------------------------------------------- drawing
 // Monotone cubic through the points: smooth, but never overshoots (so it never dips below zero).
@@ -144,7 +160,7 @@ static void DrawChart(const Week& cur, const Week& prev, int today, CGFloat x, C
              i == today ? P::text : P::dim, AL_C);
 }
 
-static void DrawTrend(CGFloat W, CGFloat H) {
+void DrawTrend(CGFloat W, CGFloat H) {
     DrawCard(W, H, 26);
     Week cur = WeekOf(0), prev = WeekOf(1);
     int today = TodayIndex();

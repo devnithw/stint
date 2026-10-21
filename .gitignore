@@ -1,3 +1,2 @@
 .DS_Store
-src/Stint.app/
-src/stint_snap
+build/

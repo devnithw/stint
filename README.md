@@ -5,7 +5,7 @@
 
 A tiny floating Pomodoro focus timer. Stint pairs a customizable Pomodoro countdown with an overtime stopwatch, so you can finish your thought without losing track of how long you have worked. Mac version port of original app by @SpiderNavi.
 
-It is a native Cocoa app in two source files (`stint.mm` and `trend.mm`), with no dependencies beyond the Xcode Command Line Tools. It runs on macOS 11 (Big Sur) or later, on both Apple silicon and Intel Macs.
+It is a native Cocoa app in a handful of small source files, with no dependencies beyond the Xcode Command Line Tools. It runs on macOS 11 (Big Sur) or later, on both Apple silicon and Intel Macs.
 
 ## Features
 
@@ -41,16 +41,16 @@ Skip this if `clang --version` already prints a version.
 
 ```sh
 git clone https://github.com/devnithw/stint.git
-cd stint/src
+cd stint
 sh build.sh
 ```
 
-The script compiles a universal binary, draws the app icon, copies the fonts, and assembles `src/Stint.app`. It takes a few seconds.
+The script compiles a universal binary, draws the app icon, copies the fonts, and assembles `build/Stint.app`. It takes a few seconds.
 
 ### 3. Run
 
 ```sh
-open Stint.app
+open build/Stint.app
 ```
 
 The timer card appears near the top-right corner of the screen, and the Stint icon appears in the menu bar.
@@ -58,7 +58,7 @@ The timer card appears near the top-right corner of the screen, and the Stint ic
 To install it, move the app to Applications:
 
 ```sh
-mv Stint.app /Applications/
+mv build/Stint.app /Applications/
 ```
 
 ### Start at login (optional)
@@ -72,7 +72,6 @@ Quit Stint first (menu bar icon → **Quit Stint**), then:
 ```sh
 cd stint
 git pull
-cd src
 sh build.sh
 ```
 
@@ -114,16 +113,16 @@ Stint can open the Focus pane in System Settings when a session starts, so you c
 
 ## Settings
 
-Settings are saved with the standard macOS preferences system under the identifier `io.github.devnithw.stint`. To view them:
+Settings are saved with the standard macOS preferences system under the identifier `local.stint`. To view them:
 
 ```sh
-defaults read io.github.devnithw.stint
+defaults read local.stint
 ```
 
 To reset everything, including the window position, quit Stint and run:
 
 ```sh
-defaults delete io.github.devnithw.stint
+defaults delete local.stint
 ```
 
 ## Uninstall
@@ -138,29 +137,50 @@ Quit Stint, delete `Stint.app`, and optionally run the `defaults delete` command
 
 ## Development
 
-Everything lives in `src/`:
-
 | Path | Purpose |
 | --- | --- |
-| `stint.mm` | Application source (Objective-C++, Cocoa, Core Graphics, Core Text) |
-| `build.sh` | Builds `Stint.app` |
-| `mac/Info.plist` | App bundle metadata (identifier, version, no Dock icon) |
-| `mac/makeicon.m` | Draws the app icon at every size during the build |
-| `fonts/` | Embedded Inter subsets and the Inter license |
-| `prepfonts.py` | Optional: regenerates the font subsets |
+| `build.sh` | Builds `build/Stint.app`, or the snapshot test build |
+| `src/` | Application source (Objective-C++, Cocoa, Core Graphics, Core Text), listed below |
+| `resources/Info.plist` | App bundle metadata (identifier, version, no Dock icon) |
+| `resources/fonts/` | Embedded Inter subsets and the Inter license |
+| `tools/makeicon.m` | Draws the app icon at every size during the build |
+| `tools/prepfonts.py` | Optional: regenerates the font subsets |
+| `build/` | Build output, not tracked by git; safe to delete |
 
-The source is organised top to bottom as session logic, drawing, window and input handling, and startup. To change the version number, edit `CFBundleShortVersionString` in `mac/Info.plist`.
+Each `.mm` file in `src/` has a header (`.h`) that declares what other files may use, with a one-line summary at the top:
 
-To check the drawing without launching the app, build the snapshot mode. It renders the main, compact, and setup views to PNG files at 2× scale:
+| Module | Holds |
+| --- | --- |
+| `app.h` | Constants, view and button ids, palette, data model, and the global app state `A` |
+| `main.mm` | App startup and delegate, the snapshot test entry point |
+| `session` | Session plan, the clock (`Tick`), start, pause, skip, and reset |
+| `actions` | What each button (`Z_*`) and menu item (`M_*`) does |
+| `window` | The floating panel, view switching, placement, and mouse and scroll input |
+| `tray` | Menu bar icon, tooltip, and menu |
+| `views.h` | Card sizes and drawing dispatch for every view (`views.mm`) |
+| `view_main.mm` | Main card, compact pill, and the segmented session bar |
+| `view_setup.mm` | Setup card |
+| `trend` | Daily focus totals and the weekly trend card |
+| `widgets` | Shared card pieces: background, blink, buttons, hit zones |
+| `gfx` | Drawing primitives, fonts, and text |
+| `icons` | Button icons |
+| `format` | Time and duration text |
+| `prefs` | Settings storage |
+
+To add a view, add it to `View` in `app.h`, draw it in its own file, and register it in `views.mm`. To add a button, add a `Z_*` id in `app.h`, draw it with `IconButton`, and handle it in `actions.mm`. To add a source file, add it to `SRC` in `build.sh`. To change the version number, edit `CFBundleShortVersionString` in `resources/Info.plist`.
+
+To check the drawing without launching the app, use the snapshot build. It renders every view to PNG files at 2× scale (in `build/snaps/` by default):
 
 ```sh
-cd src
-clang++ -std=c++17 -fobjc-arc -DSTINT_SNAPSHOT stint.mm -o stint_snap -framework Cocoa -framework CoreText
-mkdir -p /tmp/stint-snap
-./stint_snap /tmp/stint-snap
+sh build.sh snap
 ```
 
-The prepared font files are already included, so Python is not needed for a normal build. `prepfonts.py` requires FontTools and the original Inter Regular, SemiBold, and Inter Display Bold TTF files.
+The prepared font files are already included, so Python is not needed for a normal build. `tools/prepfonts.py` requires FontTools and the original Inter Regular, SemiBold, and Inter Display Bold TTF files. It writes into `fonts/` under the current directory, so run it from `resources/`:
+
+```sh
+cd resources
+python3 ../tools/prepfonts.py /path/to/inter-ttf-folder
+```
 
 ## Project background
 
@@ -172,4 +192,4 @@ The macOS build has been built and run on macOS 26 on Apple silicon. The Intel p
 
 ## Font license
 
-Inter is distributed under the SIL Open Font License 1.1; see [src/fonts/Inter-LICENSE.txt](src/fonts/Inter-LICENSE.txt). No separate application-source license has been selected.
+Inter is distributed under the SIL Open Font License 1.1; see [resources/fonts/Inter-LICENSE.txt](resources/fonts/Inter-LICENSE.txt). No separate application-source license has been selected.
