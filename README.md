@@ -3,24 +3,22 @@
 <img width="1896" height="1392" alt="Stint-screens-3x" src="https://github.com/user-attachments/assets/38aeb5a9-e402-4da7-be57-ce35750cd6de" />
 
 
-A tiny floating Pomodoro focus timer. Stint pairs a customizable Pomodoro countdown with an overtime stopwatch, so you can finish your thought without losing track of how long you have worked. Mac version port of original app by @SpiderNavi.
+A tiny floating Pomodoro focus timer. Stint pairs a customizable Pomodoro countdown with an overtime stopwatch, so you can finish your thought without losing track of how long you have worked.
 
-It is a native Cocoa app in a handful of small source files, with no dependencies beyond the Xcode Command Line Tools. It runs on macOS 11 (Big Sur) or later, on both Apple silicon and Intel Macs.
+> Mac version port of original app by [@SpiderNavi](https://github.com/SpiderNavi/stint) 
 
 ## Features
 
+- **[NEW]** Weekly focus trend: this week's total, a Monday-to-Sunday breakdown, and a chart against last week.
 - Movable, always-on-top floating timer with a compact pill view.
 - Customizable focus periods, breaks, rounds, and periodic long breaks.
-- Silent double-blink when a block ends.
 - Overtime stopwatch after the countdown reaches zero.
 - Total focused time and extra time counters.
-- Optional automatic progression between blocks.
 - Menu bar icon and a right-click menu. No Dock icon.
 - Stays visible on every Space and over full-screen apps.
 - Never takes keyboard focus away from the app you are working in.
 - Pauses automatically when the Mac goes to sleep.
 - Embedded Inter fonts with tabular digits for a steady countdown.
-- Weekly focus trend: this week's total, a Monday-to-Sunday breakdown, and a chart against last week.
 - Remembers settings, window position, and compact-view preference.
 
 The default plan is **20 minutes focus / 5 minutes break × 4 rounds**.
@@ -61,10 +59,6 @@ To install it, move the app to Applications:
 mv build/Stint.app /Applications/
 ```
 
-### Start at login (optional)
-
-Open **System Settings → General → Login Items & Extensions**, click **+** under *Open at Login*, and choose `Stint.app`.
-
 ### Updating
 
 Quit Stint first (menu bar icon → **Quit Stint**), then:
@@ -76,12 +70,6 @@ sh build.sh
 ```
 
 If you installed it in `/Applications`, move the new build over the old one.
-
-### Copying the app to another Mac
-
-Building from source on each Mac is the simplest option, because locally built apps open without warnings.
-
-`build.sh` signs the app ad hoc, not with an Apple Developer ID. If you copy a built `Stint.app` to another Mac (AirDrop, download, chat), macOS Gatekeeper will block it on first launch. To open it anyway, go to **System Settings → Privacy & Security** and click **Open Anyway** next to the Stint message. Only do this for a build you trust. Distributing Stint to other people properly needs a Developer ID signature and Apple notarization.
 
 ## How it works
 
@@ -106,10 +94,6 @@ Right-click (or Control-click) the card, or click the menu bar icon, for the ful
 | Quit Stint | Save settings and quit |
 
 Hover over the menu bar icon to see the time remaining.
-
-## macOS Focus
-
-Stint can open the Focus pane in System Settings when a session starts, so you can turn on Do Not Disturb or another Focus. It does not start or stop a Focus itself. Turn off **Open Focus settings on start** in the setup view if you don't want this.
 
 ## Settings
 
