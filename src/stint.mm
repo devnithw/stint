@@ -350,6 +350,7 @@ static void Tick() {
     if (b.elapsed >= b.dur && !b.alerted) {
         b.alerted = true;
         StartBlink();
+        [[NSSound soundNamed:@"Glass"] play];  // bell when the block's time is up
         if (A.cfg.autoCont) {
             long long spill = b.elapsed - b.dur;
             b.elapsed = b.dur;
@@ -448,8 +449,8 @@ static CGGradientRef CardGradient() {
 
 static void DrawCard(CGFloat w, CGFloat h, CGFloat r) {
     for (int i = 9; i >= 1; i--) {
-        CGFloat e = i * 1.7;
-        FillRR(ARGB(9, 0, 0, 0), -e, -e + 5, w + 2 * e, h + 2 * e, r + e);
+        CGFloat e = i * 1.5;
+        FillRR(ARGB(6, 0, 0, 0), -e, -e + 4, w + 2 * e, h + 2 * e, r + e);
     }
     CGContextSaveGState(G);
     ClipRR(0, 0, w, h, r);
