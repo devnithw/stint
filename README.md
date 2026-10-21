@@ -3,7 +3,7 @@
 <img width="1896" height="1392" alt="Stint-screens-3x" src="https://github.com/user-attachments/assets/38aeb5a9-e402-4da7-be57-ce35750cd6de" />
 
 
-A tiny floating focus timer for macOS. Stint pairs a customizable Pomodoro countdown with an overtime stopwatch, so you can finish your thought without losing track of how long you have worked.
+A tiny floating Pomodoro focus timer. Stint pairs a customizable Pomodoro countdown with an overtime stopwatch, so you can finish your thought without losing track of how long you have worked. Mac version port of original app by @SpiderNavi.
 
 It is a native Cocoa app in a single source file, with no dependencies beyond the Xcode Command Line Tools. It runs on macOS 11 (Big Sur) or later, on both Apple silicon and Intel Macs.
 
