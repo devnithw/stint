@@ -383,16 +383,19 @@ static void Icon(int kind, CGFloat cx, CGFloat cy, CGFloat s, Col c) {
     case 2: { // check
         CGPoint pts[3] = {{cx - h * 0.75, cy + h * 0.02}, {cx - h * 0.2, cy + h * 0.58}, {cx + h * 0.8, cy - h * 0.6}};
         Poly(c, s * 0.15, pts, 3, false); break; }
-    case 3: case 6: { // restart / reset (circular arrow)
+    case 3: case 6: { // restart / reset: clockwise arrow, open at the top right
         CGFloat r = h * 0.72;
+        cy += lw * 0.4;  // the arrowhead rises above the ring; nudge down to sit optically centred
         SetStroke(c, lw, true);
         CGContextBeginPath(G);
-        CGContextAddArc(G, cx, cy, r, -60 * M_PI / 180, 240 * M_PI / 180, 0);  // -60° sweeping 300° clockwise
+        CGContextAddArc(G, cx, cy, r, -30 * M_PI / 180, 270 * M_PI / 180, 0);  // clockwise on the flipped canvas
         CGContextStrokePath(G);
-        CGFloat a = -60 * M_PI / 180;
-        CGPoint tip = {cx + r * cos(a), cy + r * sin(a)};
-        CGPoint pts[3] = {{tip.x - h * 0.45, tip.y - h * 0.08}, tip, {tip.x - h * 0.05, tip.y + h * 0.45}};
-        Poly(c, lw, pts, 3, false); break; }
+        // arrowhead on the top end, pointing along the direction of travel (right)
+        CGFloat ex = cx, ey = cy - r, len = lw * 2.1, half = lw * 1.35;
+        CGPoint tri[3] = {{ex - len * 0.35, ey - half}, {ex + len * 0.65, ey}, {ex - len * 0.35, ey + half}};
+        FillPoly(c, tri, 3);
+        Poly(c, lw * 0.5, tri, 3, true);  // soften the corners
+        break; }
     case 4: { // skip next
         CGPoint pts[3] = {{cx - h * 0.7, cy - h * 0.7}, {cx + h * 0.35, cy}, {cx - h * 0.7, cy + h * 0.7}};
         FillPoly(c, pts, 3);
@@ -631,11 +634,11 @@ static void DrawMain(CGFloat W, CGFloat H) {
         if (!Complete()) IconButton(Z_SKIP, 4, ix, by - 4);
     } else {
         x += Text(@"Extra", 2, 12, x, by, P::dim) + 5;
-        Text(e, 1, 12, x, by, ExtraMs() > 0 ? P::blueText : P::soft);
+        x += Text(e, 1, 12, x, by, ExtraMs() > 0 ? P::blueText : P::soft);
         int total = A.cfg.rounds;
         NSString* r = Complete() ? [NSString stringWithFormat:@"%d/%d rounds", RoundsDone(), total]
                                  : [NSString stringWithFormat:@"Round %d/%d", A.blocks[A.idx].round, total];
-        Text(r, 2, 12, W - 20, by, P::dim, AL_R);
+        if (x + 10 <= W - 20 - TextW(r, 2, 12)) Text(r, 2, 12, W - 20, by, P::dim, AL_R);  // drop it if the times run long
     }
     DrawBlink(W, H, 28);
 }
