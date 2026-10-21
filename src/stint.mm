@@ -1,5 +1,5 @@
 // Stint — a tiny floating focus timer for macOS.
-// Single-file Cocoa + Core Graphics app. Build with build.sh.
+// Cocoa + Core Graphics app (plus trend.mm, included below). Build with build.sh.
 //
 // Concepts
 //   Session : the whole plan you start (e.g. 4 rounds).
@@ -22,10 +22,10 @@ using std::max;
 static const CGFloat SH = 18;            // shadow margin (points)
 static NSString* const kShowNote = @"io.github.devnithw.stint.show";  // sent by a second launch
 enum { K_FOCUS = 0, K_BREAK = 1, K_LONG = 2 };
-enum View { V_MAIN, V_COMPACT, V_SETUP };
+enum View { V_MAIN, V_COMPACT, V_SETUP, V_TREND };
 
 enum {
-    Z_NONE = 0, Z_MAIN, Z_SKIP, Z_RESET, Z_SETUP, Z_COMPACT, Z_CLOSE,
+    Z_NONE = 0, Z_MAIN, Z_SKIP, Z_RESET, Z_SETUP, Z_COMPACT, Z_CLOSE, Z_TREND, Z_BACK,
     Z_DEC0 = 20, Z_INC0 = 30, Z_TOG0 = 40, Z_CANCEL = 50, Z_START
 };
 enum {
@@ -289,6 +289,8 @@ static int RoundsDone() {
 static void Render();
 static void UpdateTray();
 static void DoAction(int id);
+static void TrendAdd(long long ms);
+static void TrendSave();
 
 static NSTimer* Every(double secs, void (^fn)(void)) {
     NSTimer* t = [NSTimer timerWithTimeInterval:secs repeats:YES block:^(NSTimer*) { fn(); }];
@@ -347,6 +349,7 @@ static void Tick() {
     if (!A.running || Complete()) return;
     Block& b = A.blocks[A.idx];
     b.elapsed += d;
+    if (b.kind == K_FOCUS) TrendAdd(d);
     if (b.elapsed >= b.dur && !b.alerted) {
         b.alerted = true;
         StartBlink();
@@ -428,6 +431,11 @@ static void Icon(int kind, CGFloat cx, CGFloat cy, CGFloat s, Col c) {
     case 11: { // plus
         Line(c, lw, cx - h * 0.55, cy, cx + h * 0.55, cy, true);
         Line(c, lw, cx, cy - h * 0.55, cx, cy + h * 0.55, true); break; }
+    case 12: { // trend: three rising bars
+        CGFloat base = cy + h * 0.7;
+        Line(c, lw, cx - h * 0.62, base, cx - h * 0.62, cy + h * 0.2, true);
+        Line(c, lw, cx, base, cx, cy - h * 0.25, true);
+        Line(c, lw, cx + h * 0.62, base, cx + h * 0.62, cy - h * 0.7, true); break; }
     }
 }
 
@@ -630,6 +638,7 @@ static void DrawMain(CGFloat W, CGFloat H) {
         CGFloat ix = W - 20 - 9;
         IconButton(Z_CLOSE, 8, ix, by - 4); ix -= 24;
         IconButton(Z_COMPACT, 7, ix, by - 4); ix -= 24;
+        IconButton(Z_TREND, 12, ix, by - 4); ix -= 24;
         IconButton(Z_SETUP, 5, ix, by - 4); ix -= 24;
         IconButton(Z_RESET, 6, ix, by - 4); ix -= 24;
         if (!Complete()) IconButton(Z_SKIP, 4, ix, by - 4);
@@ -749,9 +758,11 @@ static void DrawSetup(CGFloat W, CGFloat H) {
     DrawBlink(W, H, 26);
 }
 
+#include "trend.mm"
+
 static void CardSize(View v, CGFloat& w, CGFloat& h) {
     if (v == V_COMPACT) { w = 206; h = 56; }
-    else if (v == V_SETUP) { w = 280; h = 428; }
+    else if (v == V_SETUP || v == V_TREND) { w = 280; h = 428; }
     else { w = 280; h = 220; }
 }
 static NSSize WinSize(View v) {
@@ -871,6 +882,8 @@ static void DoAction(int id) {
         A.prefCompact = A.view != V_COMPACT;
         SetView(A.prefCompact ? V_COMPACT : V_MAIN); SaveSettings(); return;
     case Z_CLOSE: Quit(); return;
+    case Z_TREND: SetView(V_TREND); return;
+    case Z_BACK: SetView(V_MAIN); return;
     case Z_TOG0: A.edit.autoCont = !A.edit.autoCont; break;
     case Z_TOG0 + 1: A.edit.openFocus = !A.edit.openFocus; break;
     case Z_CANCEL: SetView(A.backView == V_SETUP ? V_MAIN : A.backView); return;
@@ -951,6 +964,7 @@ static void RepeatFire() {
     CGFloat cw, ch; CardSize(A.view, cw, ch);
     if (A.view == V_MAIN) DrawMain(cw, ch);
     else if (A.view == V_COMPACT) DrawCompact(cw, ch);
+    else if (A.view == V_TREND) DrawTrend(cw, ch);
     else DrawSetup(cw, ch);
     CGContextRestoreGState(G);
     G = nullptr;
@@ -989,7 +1003,7 @@ static void RepeatFire() {
     if (!A.topmost) [A.win orderFrontRegardless];
     int z = HitZone([self local:e]);
     if (e.clickCount >= 2 && e.clickCount % 2 == 0) {  // double-click
-        if (z == Z_NONE && A.view != V_SETUP) DoAction(Z_COMPACT);
+        if (z == Z_NONE && (A.view == V_MAIN || A.view == V_COMPACT)) DoAction(Z_COMPACT);
         else if (IsStepper(z)) DoAction(z);
         return;
     }
@@ -1118,7 +1132,7 @@ static void LoadFonts() {
     // pause on sleep
     [[NSWorkspace sharedWorkspace].notificationCenter addObserverForName:NSWorkspaceWillSleepNotification object:nil
         queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification*) {
-            if (A.running) { Tick(); A.running = false; Render(); UpdateTray(); }
+            if (A.running) { Tick(); A.running = false; TrendSave(); Render(); UpdateTray(); }
         }];
     // displays added, removed or rearranged
     [[NSNotificationCenter defaultCenter] addObserverForName:NSApplicationDidChangeScreenParametersNotification object:nil
@@ -1133,7 +1147,7 @@ static void LoadFonts() {
     ShowWidget(); ApplyTopmost();
     return NO;
 }
-- (void)applicationWillTerminate:(NSNotification*)n { SaveSettings(); }
+- (void)applicationWillTerminate:(NSNotification*)n { SaveSettings(); TrendSave(); }
 @end
 
 #ifdef STINT_SNAPSHOT
@@ -1147,7 +1161,8 @@ static void Snap(NSString* path) {
     CGContextTranslateCTM(G, SH, SH);
     A.zones.clear();
     CGFloat cw, ch; CardSize(A.view, cw, ch);
-    if (A.view == V_MAIN) DrawMain(cw, ch); else if (A.view == V_COMPACT) DrawCompact(cw, ch); else DrawSetup(cw, ch);
+    if (A.view == V_MAIN) DrawMain(cw, ch); else if (A.view == V_COMPACT) DrawCompact(cw, ch);
+    else if (A.view == V_TREND) DrawTrend(cw, ch); else DrawSetup(cw, ch);
     CGImageRef img = CGBitmapContextCreateImage(G);
     NSData* png = [[[NSBitmapImageRep alloc] initWithCGImage:img] representationUsingType:NSBitmapImageFileTypePNG properties:@{}];
     [png writeToFile:path atomically:YES];
@@ -1174,6 +1189,15 @@ int main(int argc, const char* argv[]) {
         A.view = V_MAIN; A.hover = Z_NONE;
         while (!Complete()) { A.blocks[A.idx].elapsed = A.blocks[A.idx].dur; Advance(); }
         Snap([dir stringByAppendingPathComponent:@"7-complete.png"]);
+        A.inside = true; A.hover = Z_TREND; Snap([dir stringByAppendingPathComponent:@"8-hover-trend.png"]);
+        A.inside = false; A.hover = Z_NONE;
+        gDaysLoaded = true;  // sample data instead of the stored days
+        long long mins[2][7] = {{95, 140, 60, 180, 120, 30, 0}, {80, 110, 150, 90, 200, 45, 20}};
+        for (int w = 0; w < 2; w++) {
+            Week k = WeekOf(w);
+            for (int i = 0; i < 7; i++) gDays[k.key[i]] = w == 0 && i > TodayIndex() ? 0 : mins[w][i] * 60000;
+        }
+        A.view = V_TREND; Snap([dir stringByAppendingPathComponent:@"9-trend.png"]);
     }
     return 0;
 }

@@ -5,7 +5,7 @@
 
 A tiny floating Pomodoro focus timer. Stint pairs a customizable Pomodoro countdown with an overtime stopwatch, so you can finish your thought without losing track of how long you have worked. Mac version port of original app by @SpiderNavi.
 
-It is a native Cocoa app in a single source file, with no dependencies beyond the Xcode Command Line Tools. It runs on macOS 11 (Big Sur) or later, on both Apple silicon and Intel Macs.
+It is a native Cocoa app in two source files (`stint.mm` and `trend.mm`), with no dependencies beyond the Xcode Command Line Tools. It runs on macOS 11 (Big Sur) or later, on both Apple silicon and Intel Macs.
 
 ## Features
 
@@ -20,6 +20,7 @@ It is a native Cocoa app in a single source file, with no dependencies beyond th
 - Never takes keyboard focus away from the app you are working in.
 - Pauses automatically when the Mac goes to sleep.
 - Embedded Inter fonts with tabular digits for a steady countdown.
+- Weekly focus trend: this week's total, a Monday-to-Sunday breakdown, and a chart against last week.
 - Remembers settings, window position, and compact-view preference.
 
 The default plan is **20 minutes focus / 5 minutes break × 4 rounds**.
